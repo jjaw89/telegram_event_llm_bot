@@ -13,3 +13,6 @@ __pycache__/
 
 # Ignore data files
 bot_data.json
+
+commands.txt
+
