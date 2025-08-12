@@ -1,0 +1,17 @@
+# Build the bot image (after changing bot/Dockerfile or requirements.txt)
+docker compose build bot
+
+# Run the full stack
+docker compose up -d
+
+# See logs for the bot
+docker compose logs -f bot
+
+# Connect to Postgres interactively
+docker compose exec db psql -U app -d eventsdb
+
+# Quick one-off SQL
+docker compose exec db psql -U app -d eventsdb -c "SELECT id, title, start_ts, end_ts FROM events ORDER BY start_ts LIMIT 5;"
+
+# Stop and remove containers (data in volumes is preserved)
+docker compose down

@@ -1,0 +1,15 @@
+# Ignore sensitive configs
+.env
+.env.*
+config.py
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore VSCode-related files
+.vscode/
+.VSCodeCounter/
+
+# Ignore data files
+bot_data.json

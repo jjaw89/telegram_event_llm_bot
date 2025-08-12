@@ -1,0 +1,57 @@
+services:
+  db:
+    image: postgres:16
+    container_name: tevb-db
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: eventsdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d eventsdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: tevb-ollama
+    environment:
+      - OLLAMA_DISABLE_TELEMETRY=1
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    # If you have GPU and nvidia toolkit installed, uncomment the next 3 lines
+    # deploy:
+    #   resources:
+    #     reservations: { devices: [ { capabilities: [gpu] } ] }
+
+  bot:
+    build:
+      context: ./bot
+    container_name: tevb-bot
+    env_file:
+      - .env
+    environment:
+      # sensible defaults if .env not set
+      PG_DSN: ${PG_DSN:-postgresql://app:app@db:5432/eventsdb}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      LLM_MODEL: ${LLM_MODEL:-gemma3:4b-it-qat}
+      REF_DATE: ${REF_DATE:-2025-08-11}
+      TZ: ${TZ:-America/Vancouver}
+    depends_on:
+      db:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    volumes:
+      - ./bot:/app
+    command: ["python","-u","/app/main.py"]
+
+volumes:
+  pgdata:
+  ollama:
