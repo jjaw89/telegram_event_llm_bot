@@ -14,6 +14,7 @@ class EventOut(BaseModel):
     end_iso: str | None = None
     location: str | None = None
     capacity: int | None = None
+    description: str | None = None 
     notes: str | None = None
 
 SCHEMA = {
@@ -23,6 +24,7 @@ SCHEMA = {
     "end_iso":{"type":"string","nullable":True},
     "location":{"type":"string","nullable":True},
     "capacity":{"type":"integer","nullable":True},
+    "description":{"type":"string","nullable":True},
     "notes":{"type":"string","nullable":True}
   },"required":["title","start_iso"]
 }
@@ -54,16 +56,18 @@ async def extract_event(announcement: str, ref_date: str, tz_name: str = "Americ
         f"Reference date for resolving missing year / relative dates: {ref_date}. "
         "Title: use the explicit event name; if multiple, pick the one nearest the 'When:' line; do not invent. "
         "Times: if a range like '7:00 PM - 9:00 PM' appears, set start_iso and end_iso; else end_iso=null. "
-        "Location: prefer 'venue (details), address, city, province, country' if present. "
+        "Location: Location: prefer 'venue (name), address, city, province, country' if present. If no venue, use 'hosting group (name), city, province, country'. Never return just the city; include at least group or venue name."
         "Capacity: convert written numbers to integers if unambiguous; else null. "
+        "Description: return EXACTLY ONE short sentence (≤140 chars) summarizing the event; do not repeat date/time/venue.\n"
         "Notes: <= 280 chars; deduplicate repeated sentences; omit marketing fluff."
     )
 
+    user_content = f"Schema:\n{json.dumps(SCHEMA)}\n\nAnnouncement:\n{announcement}"
     payload = {
         "model": MODEL,
         "messages": [
             {"role":"system","content": system},
-            {"role":"user","content": f"Schema:\n{json.dumps(SCHEMA)}\n\nAnnouncement:\n{announcement}"}
+            {"role":"user","content": user_content}
         ],
         "options": {"temperature": 0, "num_predict": 256, "num_ctx": 4096},
         "format": "json",
@@ -92,6 +96,7 @@ async def extract_event(announcement: str, ref_date: str, tz_name: str = "Americ
         "end_local": end_local,
         "location": evt.location,
         "capacity": evt.capacity,
+        "description": evt.description,
         "notes": evt.notes,
         "raw": data
     }

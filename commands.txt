@@ -16,6 +16,10 @@ docker compose exec db psql -U app -d eventsdb -c "SELECT id, title, start_ts, e
 # Stop and remove containers (data in volumes is preserved)
 docker compose down
 
+# From the folder with docker-compose.yml
+docker compose exec db psql -U app -d eventsdb -c "TRUNCATE events RESTART IDENTITY;"
+
+
 # ===== START BOT STACK =====
 # Run this from the folder with docker-compose.yml
 docker compose up -d
@@ -56,3 +60,22 @@ docker compose exec ollama ollama list
 # Then:
 #   /list
 #   (should return next 5 events)
+
+
+
+# Check installed models
+docker compose exec ollama ollama list
+
+# Pull/update a model (only needed once per model, persists with bind mount or named volume)
+docker compose exec ollama ollama pull gemma3:4b-it-qat
+
+# (If you ever suspect the API) Show tags via HTTP
+docker compose exec bot sh -lc "curl -sS http://ollama:11434/api/tags | jq"
+# Check installed models
+docker compose exec ollama ollama list
+
+# Pull/update a model (only needed once per model, persists with bind mount or named volume)
+docker compose exec ollama ollama pull gemma3:4b-it-qat
+
+# (If you ever suspect the API) Show tags via HTTP
+docker compose exec bot sh -lc "curl -sS http://ollama:11434/api/tags | jq"

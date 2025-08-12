@@ -19,7 +19,6 @@ services:
   ollama:
     image: ollama/ollama:latest
     container_name: tevb-ollama
-    # Use NVIDIA runtime (compatible with older Compose schema)
     runtime: nvidia
     environment:
       - OLLAMA_DISABLE_TELEMETRY=1
@@ -29,7 +28,8 @@ services:
     ports:
       - "11434:11434"
     volumes:
-      - ollama:/root/.ollama
+      - /media/jaspar/shared_ssd8/ollama_models:/root/.ollama
+
 
   bot:
     build:

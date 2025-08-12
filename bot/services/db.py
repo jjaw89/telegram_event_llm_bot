@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS events (
   end_ts    TIMESTAMPTZ,
   location  TEXT,
   capacity  INT,
+  description TEXT,
   notes     TEXT,
   raw       JSONB,
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -30,16 +31,17 @@ with _conn() as c:
         c.commit()
 
 UPSERT_SQL = """
-INSERT INTO events (title, start_ts, end_ts, location, capacity, notes, raw, updated_at)
-VALUES (%(title)s, %(start_ts)s, %(end_ts)s, %(location)s, %(capacity)s, %(notes)s, %(raw)s, now())
+INSERT INTO events (title, start_ts, end_ts, location, capacity, description, notes, raw, updated_at)
+VALUES (%(title)s, %(start_ts)s, %(end_ts)s, %(location)s, %(capacity)s, %(description)s, %(notes)s, %(raw)s, now())
 ON CONFLICT (lower(title), start_ts)
 DO UPDATE SET
-  end_ts   = EXCLUDED.end_ts,
-  location = EXCLUDED.location,
-  capacity = EXCLUDED.capacity,
-  notes    = EXCLUDED.notes,
-  raw      = EXCLUDED.raw,
-  updated_at = now()
+  end_ts      = EXCLUDED.end_ts,
+  location    = EXCLUDED.location,
+  capacity    = EXCLUDED.capacity,
+  description = EXCLUDED.description,
+  notes       = EXCLUDED.notes,
+  raw         = EXCLUDED.raw,
+  updated_at  = now()
 RETURNING id;
 """
 
@@ -52,19 +54,18 @@ def upsert_event(n: dict) -> int:
                 "end_ts": n["end_ts_utc"],
                 "location": n.get("location"),
                 "capacity": n.get("capacity"),
+                "description": n.get("description"),
                 "notes": n.get("notes"),
                 "raw": json.dumps(n.get("raw", {}), ensure_ascii=False),
             })
             row = cur.fetchone()
             conn.commit()
             return row["id"]
-
+        
 LIST_NEXT_SQL = """
 SELECT
-  id, title, location, notes,
-  (start_ts AT TIME ZONE 'America/Vancouver') AS start_local,
-  CASE WHEN end_ts IS NULL THEN NULL
-       ELSE (end_ts AT TIME ZONE 'America/Vancouver') END AS end_local
+  id, title, location, description, notes,
+  start_ts, end_ts   -- raw timestamptz; format in Python
 FROM events
 WHERE start_ts >= now()
 ORDER BY start_ts
@@ -76,3 +77,11 @@ def list_next_events(limit: int = 5) -> list[dict]:
         with conn.cursor() as cur:
             cur.execute(LIST_NEXT_SQL, {"limit": limit})
             return cur.fetchall()
+
+def delete_all_events() -> int:
+    with _conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("TRUNCATE events RESTART IDENTITY;")
+            conn.commit()
+            # TRUNCATE doesn't return rowcount; return 0 to indicate success
+            return 0
