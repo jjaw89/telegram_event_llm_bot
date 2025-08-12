@@ -15,3 +15,44 @@ docker compose exec db psql -U app -d eventsdb -c "SELECT id, title, start_ts, e
 
 # Stop and remove containers (data in volumes is preserved)
 docker compose down
+
+# ===== START BOT STACK =====
+# Run this from the folder with docker-compose.yml
+docker compose up -d
+# This will start:
+#   - Postgres DB (tevb-db)
+#   - Ollama LLM service (tevb-ollama, with GPU support)
+#   - Telegram bot service (tevb-bot)
+
+# ===== STOP BOT STACK =====
+docker compose down
+# This stops and removes containers but keeps DB data
+
+# ===== RESTART ONLY THE BOT SERVICE =====
+docker compose restart bot
+# Useful after code changes — faster than restarting everything
+
+# ===== CHECK STATUS =====
+docker compose ps
+# Shows if all services are running and healthy
+
+# ===== VIEW LOGS =====
+docker compose logs -f bot     # bot service logs
+docker compose logs -f ollama  # LLM service logs
+docker compose logs -f db      # DB logs
+
+# ===== TEST LLM CONNECTIVITY FROM BOT CONTAINER =====
+docker compose exec bot sh -lc "curl -sS http://ollama:11434/api/version && echo"
+docker compose exec bot sh -lc "curl -sS http://ollama:11434/api/tags && echo"
+
+# ===== PULL OR UPDATE MODEL =====
+docker compose exec ollama ollama pull gemma3:4b-it-qat
+docker compose exec ollama ollama list
+
+# ===== TEST BOT FUNCTIONALITY =====
+# In Telegram, send:
+#   /add
+#   (paste an event announcement)
+# Then:
+#   /list
+#   (should return next 5 events)

@@ -19,16 +19,17 @@ services:
   ollama:
     image: ollama/ollama:latest
     container_name: tevb-ollama
+    # Use NVIDIA runtime (compatible with older Compose schema)
+    runtime: nvidia
     environment:
       - OLLAMA_DISABLE_TELEMETRY=1
+      - OLLAMA_NUM_GPU=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     ports:
       - "11434:11434"
     volumes:
       - ollama:/root/.ollama
-    # If you have GPU and nvidia toolkit installed, uncomment the next 3 lines
-    # deploy:
-    #   resources:
-    #     reservations: { devices: [ { capabilities: [gpu] } ] }
 
   bot:
     build:
@@ -37,7 +38,6 @@ services:
     env_file:
       - .env
     environment:
-      # sensible defaults if .env not set
       PG_DSN: ${PG_DSN:-postgresql://app:app@db:5432/eventsdb}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
       LLM_MODEL: ${LLM_MODEL:-gemma3:4b-it-qat}
