@@ -63,17 +63,17 @@ async def select_event_quick(update: Update, context: ContextTypes.DEFAULT_TYPE,
     
     # Build buttons for each event
     buttons = []
+    # Each button is its own row
     for i, event in enumerate(events):
         text = f"{event["title"]} ({event["start_ts"].astimezone(LOCAL_TZ).strftime('%m-%d')})"
         call_back_data = f"event:{event["id"]}:"
         buttons.append([InlineKeyboardButton(text, callback_data=call_back_data)])
         
+    # Buttons on one row.
     buttons.append([ 
-        InlineKeyboardButton("Date", callback_data='date'),
-        InlineKeyboardButton("Created", callback_data='created'),
-        InlineKeyboardButton("Updated", callback_data='updated')
-        ],
-        [InlineKeyboardButton("Cancel", callback_data="cancel")]) # Exits the selection process
+        InlineKeyboardButton("Sort By", callback_data="sort_by"), # Goes to the sort by menu
+        InlineKeyboardButton("Cancel", callback_data="cancel") # Exits the selection process
+        ])
         
     # Create the inline keyboard markup
     reply_markup = InlineKeyboardMarkup(buttons)
@@ -86,22 +86,34 @@ async def select_event_quick(update: Update, context: ContextTypes.DEFAULT_TYPE,
         if action == "edit":
             # Call the edit function for the selected event
             await edit_event(update, context, event_id) # To be implemented
-    
-    # If the user selects a sort order, we will call the appropriate function
-    elif update.callback_query and update.callback_query.data in ["date", "created", "updated"]:
-        pattern = update.callback_query.data
-        if pattern == "date":
-            await select_event_by_date(update, context, action=action, page_number=0)
-        elif pattern == "created":
-            await select_event_by_created(update, context, action=action, page_number=0)
-        elif pattern == "updated":
-            await select_event_by_updated(update, context, action=action, page_number=0)
+            
+    elif update.callback_query and update.callback_query.data == "sort_by":
+        await sort_by_menu(update, context, action)  # Go to the sort by menu
     
     # If the user selects cancel we will exit the selection process
     # Question: After a user edits an event, does the program come back to this point?
     # If so, we should always exit the selection process if the program reaches this point and we would not have an elif.
     
+async def sort_by_menu(update: Update, context: ContextTypes.DEFAULT_TYPE), action):
+    """
+    This function is called when the user selects the Sort By button.
+    It will present the user with a menu to select the sort order they want to use.
+    It sends the user to the first page of the appropriate sort order.
+    """
+    buttons = [
+        [InlineKeyboardButton("Date", callback_data="sort_by:start_ts")],
+        [InlineKeyboardButton("Created", callback_data="sort_by:created_at")],
+        [InlineKeyboardButton("Updated", callback_data="sort_by:updated_at")],
+        [InlineKeyboardButton("Back", callback_data="back_to_quick_select")],
+        [InlineKeyboardButton("Cancel", callback_data="cancel")]
+    ]
     
+    reply_markup = InlineKeyboardMarkup(buttons)
+    await update.message.reply_text("Select a sort order:", reply_markup=reply_markup)
+    
+    if update.callback_query and update.callback_query.data.startswith("sort_by:"):
+        sort_by = update.callback_query.data.split(":")[1]
+        await select_event_by_date(update, context, action, page_number=0, sort_by=sort_by)  # Go to the first page of the selected sort order
     
 async def select_event_by_date(update: Update, context: ContextTypes.DEFAULT_TYPE, action, page_number=0):
 
