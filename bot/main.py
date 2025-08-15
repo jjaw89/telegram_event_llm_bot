@@ -6,6 +6,7 @@ from telegram.ext import (
 from handlers_parse import start_add, receive_announcement, cancel, AWAIT_ANNOUNCEMENT
 from handlers_list import list_next
 from handlers_admin import delete_all
+from handlers_select_event import select_event_entry
 
 # Load token
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -45,6 +46,11 @@ def main() -> None:
     # Restricted commands
     app.add_handler(CommandHandler("list", restrict_to_admins(list_next)))
     app.add_handler(CommandHandler("deleteall", restrict_to_admins(delete_all)))
+    
+    # Edit Event command
+    # We allow the user to add a parameter /edit_event <pattern>
+    app.add_handler(CommandHandler("edit_event", restrict_to_admins(select_event_entry)))
+
 
     @restrict_to_admins
     async def _hi(update, context):

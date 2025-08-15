@@ -23,7 +23,7 @@ def _roll_end_if_needed(s_local: datetime, e_local: datetime | None) -> datetime
     return e_local
 
 async def list_next(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    rows = list_next_events(limit=5)
+    rows = list_next_events(limit=10)
     if not rows:
         await update.message.reply_text("No upcoming events found.")
         return
@@ -49,8 +49,8 @@ async def list_next(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 when = _fmt_cross_day_range(s_local, e_local)
 
         # Keep description short in the list view
-        if len(desc) > 140:
-            desc = desc[:137] + "…"
+        # if len(desc) > 140:
+        #     desc = desc[:137] + "…"
 
         block = f"{title}\n{when}\n{loc}"
         if desc:

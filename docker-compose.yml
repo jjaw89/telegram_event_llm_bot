@@ -28,7 +28,7 @@ services:
     ports:
       - "11434:11434"
     volumes:
-      - /media/jaspar/shared_ssd8/ollama_models:/root/.ollama
+      - /media/jaspar/shared_ssd8/ollama_models/models:/root/.ollama
 
 
   bot:

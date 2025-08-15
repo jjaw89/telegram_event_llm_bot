@@ -53,14 +53,26 @@ async def extract_event(announcement: str, ref_date: str, tz_name: str = "Americ
     system = (
         "Return ONLY one JSON object matching the schema. If a field is unknown, use null. "
         f"Timezone: assume {tz_name} if missing and include the offset in all ISO times. "
-        f"Reference date for resolving missing year / relative dates: {ref_date}. "
+        f"Reference date: {ref_date}. All decisions MUST be made relative to this date. "
+        "If the announcement includes a month and day but no year, ALWAYS assume the reference year. "
+        "If multiple date/time mentions exist, return the one that is NEXT or UPCOMING relative to the reference date. "
+        "NEVER return a date in the past. This is critical. "
         "Title: use the explicit event name; if multiple, pick the one nearest the 'When:' line; do not invent. "
-        "Times: if a range like '7:00 PM - 9:00 PM' appears, set start_iso and end_iso; else end_iso=null. "
-        "Location: Location: prefer 'venue (name), address, city, province, country' if present. If no venue, use 'hosting group (name), city, province, country'. Never return just the city; include at least group or venue name."
+        "Ignore usernames or social media handles. Remove trailing handles, hashtags, or location tags like 'yyj'. "
+        "Times: Extract both start_iso and end_iso if a time range appears — including informal formats such as '5:30 PM – 6:15 PM', '5 - 7pm', '5–7 PM', or 'between 5 and 7 PM'. Do not ignore ranges due to punctuation, formatting, or spacing. If only one time is present, set end_iso to null. "
+        "Treat ranges like '5:30 PM – 6:15 PM' as same-day unless there's clear evidence of an overnight event (e.g. ending after midnight)."
+        "If multiple times or time ranges appear, prefer the one that: (1) includes both start and end time, (2) is more specific, and (3) occurs in the future relative to the reference date."
+        "For recurring events or if the date is missing, infer the next future date and time using context (e.g. weekday + time).""Location: prefer 'venue (name), address, city, province, country' if present. "
+        "Location: Always include at least a venue name or hosting group name—never return just the city. If a city is not explicitly mentioned, default to 'Victoria, British Columbia, Canada'. If no venue is mentioned, use 'hosting group (name), city, province, country'. If location is vague or partial, append the default city information."
         "Capacity: convert written numbers to integers if unambiguous; else null. "
-        "Description: return EXACTLY ONE short sentence (≤140 chars) summarizing the event; do not repeat date/time/venue.\n"
-        "Notes: <= 280 chars; deduplicate repeated sentences; omit marketing fluff."
+        "Description: Return EXACTLY ONE sentence (≤140 chars) summarizing the event’s *main activities* and vibe. "
+        "Include whether it’s a dance party, workshop, social, etc. Highlight anything sensory, queer, or kink-related. "
+        "Do NOT repeat the date/time/venue.\n"
+        "Notes: Return up to 280 characters. Include extra details that didn’t fit in the description, like dress code, accessibility, theme, ticket info, or performances. "
+        "If relevant, include safety policies (e.g. 'Consent required', '19+', 'Kink/fetish positive'). "
+        "Deduplicate repeated sentences. Skip marketing fluff."
     )
+
 
     user_content = f"Schema:\n{json.dumps(SCHEMA)}\n\nAnnouncement:\n{announcement}"
     payload = {
